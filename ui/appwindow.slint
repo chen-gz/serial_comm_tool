@@ -16,7 +16,7 @@
 //     }
 // }
 
-import {VerticalBox, HorizontalBox, Button, TextEdit, StyleMetrics} from "std-widgets.slint";
+import {VerticalBox, HorizontalBox, Button, TextEdit, StyleMetrics, ComboBox} from "std-widgets.slint";
 import { SideBar } from "side_bar.slint";
 // import source_code_pro font from system
 // import "/usr/share/fonts/TTF/JetBrainsMonoNLNerdFont-Thin.ttf";
@@ -32,31 +32,115 @@ export component AppWindow inherits Window{
     height: 600px;
     // default-font-family: "Source Code Pro Mono";
     default-font-family: "JetBrains Mono NL Nerd Font";
-    
+    in-out property <string> send_data;
+    in-out property <string> received_data;
+    in-out property <[string]> com_ports;
+    title: "Serial Port Communication";
     HorizontalBox {
-        // Sidebar with buttons
-        // VerticalBox {
-        //     Button { text: "Button 1"; }
-        //     Button { text: "Button 2"; }
-        //     Button { text: "Button 3"; }
-        //     // Add more buttons as needed
-        //     width: 20%;
-        // }
-        side-bar := SideBar {
-            title: @tr("Slint Widgets Gallery");
-            model: [@tr("Menu" => "Controls"), @tr("Menu" => "ListView"), @tr("Menu" => "TableView"), @tr("Menu" => "TextEdit"), @tr("Menu" => "Easings"), @tr("Menu" => "About")];
+        spacing: 0px;
+        VerticalBox {
+            width: 180px;
+            VerticalLayout {
+                // height: 150px;
+                spacing: 10px;
+                HorizontalLayout{
+                    spacing: 10px;
+                    height: 30px;
+                    Text {
+                        min-width: 50px;
+                        vertical-alignment: center;
+                        font-size: 15px;
+                        text: "Port";
+                    }
+                    ComboBox {
+                        width: 100px;
+                        // model: ["COM1", "COM2", "COM3", "COM4"];
+                        model: root.com_ports;
+                        // models: root.com_ports;
+                    }
+                }
+                HorizontalLayout{
+                    height: 30px;
+                    spacing: 10px;
+                    Text {
+                        min-width: 50px;
+                        vertical-alignment: center;
+                        font-size: 15px;
+                        text: "Baudrate";
+                        
+                    }
+                    TextInput {
+                        width: 100px;
+                        height: 30px;
+                        // color: #ef0b0b;
+                        single-line: true;
+                        input-type: number;
+                        enabled: true;
+                        text: "115200";
+                        vertical-alignment: center;
+                        horizontal-alignment: center;
+                        font-family: "JetBrains Mono NL Nerd Font";
+                        font-size: 15px;
+                        read-only: false;
+                    }
+                }
+                HorizontalLayout{
+                    spacing: 10px;
+                    height: 30px;
+                    Text {
+                        min-width: 50px;
+                        vertical-alignment: center;
+                        font-size: 15px;
+                        text: "Data Bits";
+                    }
+                    ComboBox {
+                        width: 100px;
+                        model: [5, 6, 7, 8];
+                        // preset: 3;
+                        current-index: 3;
+                    }
+                }
+            }
+            HorizontalLayout {
+                // padding-left: 10px;
+                    height: 30px;
+                Button {
+                    text: "Connect";
+                    // width: 75px;
+                }
+                // Button {
+                //     text: "Disconnect";
+                //     width: 75px;
+                //     // height: 30px;
+                // }
+            }
+            
         }
 
         VerticalBox {
             Text {
-                text: "Main Content Area";
+                text: "Received Data";
                 font-family: "JetBrains Mono NL Nerd Font";
             }
             TextEdit {
-                font-size: 14px;
+                text: root.received_data;
+                // text: "Example Data long long long Example Data long long long Example Data long long long Example Data long long long Example Data long long long ";
+                // font-family: "JetBrains Mono NL Nerd Font";
+                // padding: 10px;
+                vertical-stretch: 1;
+                horizontal-stretch: 1;
+                wrap: word-wrap;
+                font-size: 16px;
+                // accessible-role: text;
+                visible: true;
+                
+            }
+            Text {
+                text: "Send Data";
+                font-family: "JetBrains Mono NL Nerd Font";
             }
             TextEdit {
-
+                text: root.send_data;
             }
             HorizontalBox {
                 padding-left: 300px;
