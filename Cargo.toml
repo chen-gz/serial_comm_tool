@@ -1,0 +1,19 @@
+[package]
+name = "my-project"
+version = "0.1.0"
+authors = ["Mason <mason@ggeta.com>"]
+edition = "2021"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# slint = {version = "1.4",  features = ["renderer-skia"]}
+slint = {version = "1.4"}
+[build-dependencies]
+slint-build = "1.4"
+
+[profile.release]
+opt-level = 'z' # Optimize for size
+lto = true # Enable Link Time Optimization
+codegen-units = 1 # Potentially improve optimizations at the cost of compile time
