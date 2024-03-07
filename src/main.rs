@@ -147,12 +147,15 @@ fn setup_ui_update_thread(
                             ui.upgrade_in_event_loop(move |ui| {
                                 // append the received data to the existing data
                                 let recv_data = ui.get_received_data().to_string();
-                                let recv_data = format!("{}{}", recv_data, String::from_utf8_lossy(&data));
+                                let recv_data =
+                                    format!("{}{}", recv_data, String::from_utf8_lossy(&data));
                                 ui.set_received_data(slint::SharedString::from(recv_data));
                                 // update the received data length
-                                let recv_len = ui.get_received_data_length() as u32 + data.len() as u32;
+                                let recv_len =
+                                    ui.get_received_data_length() as u32 + data.len() as u32;
                                 ui.set_received_data_length(recv_len as i32);
-                            }).unwrap();
+                            })
+                            .unwrap();
                         }
                         CmdToUI::PortClosed => {
                             let _ = tx_to_serial.send(CmdToSerial::Close);
@@ -160,8 +163,8 @@ fn setup_ui_update_thread(
                             ui.upgrade_in_event_loop(|ui| {
                                 ui.set_connect_button_text(slint::SharedString::from("Connect"));
                                 ui.invoke_refresh_button_clicked(); // Refresh COM ports list
-                            }).unwrap();
-
+                            })
+                            .unwrap();
                         }
                         CmdToUI::SendDataSuccess(len) => {
                             ui.upgrade_in_event_loop(move |ui| {
@@ -212,6 +215,14 @@ fn setup_ui_event_listeners(ui: &AppWindow, tx_to_serial: Sender<CmdToSerial>) {
                 let mut ports_name = vec![];
                 if let Ok(ports) = available_ports() {
                     for p in ports {
+                        // for mac os, /dev/cu.wlan is not a valid port
+                        if p.port_name.starts_with("/dev/cu.wlan")
+                            || p.port_name.starts_with("/dev/tty.wlan")
+                            || p.port_name.starts_with("/dev/cu.Bluetooth")
+                            || p.port_name.starts_with("/dev/tty.Bluetooth")
+                        {
+                            continue;
+                        }
                         ports_name.push(slint::SharedString::from(p.port_name));
                     }
                 }
