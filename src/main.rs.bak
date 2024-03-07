@@ -1,0 +1,212 @@
+// #![windows_subsystem = "windows"]
+
+use std::time::Duration;
+use std::{rc::Rc, vec};
+
+use slint::{Model, ModelRc, VecModel};
+slint::include_modules!();
+use serialport::{available_ports, DataBits, FlowControl, Parity, StopBits};
+
+#[derive(Debug)]
+enum CmdToSerial {
+    Open(String, u32), // port name, baudrate
+    Send(String),
+    Close,
+}
+enum CmdToUI {
+    UpdateComPorts(Vec<String>),
+    UpdateSendData(String),
+    UpdateRecvData(String),
+
+    PortClosed,
+}
+fn main() -> Result<(), slint::PlatformError> {
+    let ui = AppWindow::new()?;
+    let (tx_to_serial, rx_to_serial) = std::sync::mpsc::channel();
+    let (tx_to_ui, rx_to_ui) = std::sync::mpsc::channel();
+
+    std::thread::spawn(move || {
+        // let mut port: Option<serialport::SerialPort> = None;
+        let (mut tx_close, mut rx_close) = std::sync::mpsc::channel();
+        loop {
+            // rx is a Receiver
+            let mut port = None;
+            match rx_to_serial.recv() {
+                Ok(cmd) => {
+                    match cmd {
+                        CmdToSerial::Open(port_name, baudrate) => {
+                            println!("Open port: {}, {}", port_name, baudrate);
+                            let clone = tx_to_ui.clone();
+                            if port.is_some() {
+                                // tx_to_ui.send(CmdToUI::PortClosed).unwrap();
+                                drop(port);
+                            }
+                            port = Some(
+                                serialport::new(port_name, baudrate)
+                                    .data_bits(DataBits::Eight)
+                                    .flow_control(FlowControl::None)
+                                    .parity(Parity::None)
+                                    .stop_bits(StopBits::One)
+                                    .timeout(Duration::from_millis(100))
+                                    .open()
+                                    .unwrap(),
+                            );
+                            let mut port_clone = port.unwrap().try_clone().unwrap();
+                            let tx2 = tx_to_ui.clone();
+                            (tx_close, rx_close) = std::sync::mpsc::channel();
+                            std::thread::spawn(move || {
+                                let mut serial_buf = vec![0; 100];
+                                loop {
+                                    match port_clone.bytes_to_read() {
+                                        Ok(t) => {
+                                            if t > 0 {
+                                                match port_clone.read(serial_buf.as_mut_slice()) {
+                                                    Ok(t) => {
+                                                        let s = String::from_utf8_lossy(
+                                                            &serial_buf[..t],
+                                                        );
+                                                        tx2.send(CmdToUI::UpdateRecvData(
+                                                            s.to_string(),
+                                                        ))
+                                                        .unwrap();
+                                                    }
+                                                    Err(e) => {
+                                                        tx2.send(CmdToUI::PortClosed).unwrap();
+                                                        drop(port_clone);
+                                                        println!(
+                                                            "Error reading from serial port: {:?}",
+                                                            e
+                                                        );
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            tx2.send(CmdToUI::PortClosed).unwrap();
+                                            drop(port_clone);
+                                            println!("Error reading from serial port: {:?}", e);
+                                            break;
+                                        }
+                                    }
+                                    match rx_close.try_recv() {
+                                        Ok(_) => {
+                                            drop(port_clone);
+                                            println!("Close port in read thread");
+                                            break;
+                                        }
+                                        Err(e) if e == std::sync::mpsc::TryRecvError::Empty => {
+                                            // Do nothing and continue the loop.
+                                        }
+                                        Err(e) => {
+                                            println!("Error reading from rx_close: {:?}", e);
+                                            break;
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        CmdToSerial::Close => {
+                            if (tx_close.send(()).is_err()) {
+                                // println!("Error: tx_close.send(()).is_err()");
+                            }
+                            // tx_close.send(()).unwrap();
+                            drop(port);
+                            println!("Close port in main thread");
+                        }
+                        CmdToSerial::Send(data) => {
+                            println!("Send data: {}", data);
+                            port.as_mut().unwrap().write(data.as_bytes()).unwrap();
+                        }
+                    }
+                }
+                Err(e) => {
+                    println!("Error: {:?}", e);
+                    break;
+                }
+            }
+        }
+    });
+    let ui_handle = ui.as_weak();
+    let tx_clone_ui_main = tx_to_serial.clone();
+    std::thread::spawn(move || {
+        loop {
+            match rx_to_ui.recv() {
+                Ok(cmd) => {
+                    // let ui = ui_handle.unwrap();
+                    if let Some(ui) = ui_handle.upgrade() {
+                        match cmd {
+                            CmdToUI::UpdateComPorts(ports) => {
+                                // let the_model = Rc::new(VecModel::from(ports));
+                                // let model_rc = ModelRc::new(the_model.clone());
+                                // ui.set_com_ports(model_rc);
+                            }
+                            CmdToUI::UpdateSendData(data) => {
+                                // ui.set_send_data(slint::SharedString::from(data));
+                            }
+                            CmdToUI::UpdateRecvData(data) => {
+                                // ui.set_recv_data(slint::SharedString::from(data));
+                            }
+                            CmdToUI::PortClosed => {
+                                ui.set_connect_button_text(slint::SharedString::from("Connect"));
+                                tx_clone_ui_main.send(CmdToSerial::Close).unwrap();
+                                // wait for 100ms 
+                                std::thread::sleep(Duration::from_millis(100));
+                                // call the refresh button to update the com ports
+                                ui.invoke_refresh_button_clicked();
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    println!("Error: {:?}", e);
+                    break;
+                }
+            }
+        }
+    });
+
+    ui.on_connect_button_clicked({
+        let ui_handle = ui.as_weak();
+        let tx_clone = tx_to_serial.clone();
+        move || {
+            let ui = ui_handle.unwrap();
+            let idx = ui.get_com_ports_index();
+            let ports = ui.get_com_ports();
+            let port_name = ports.row_data(idx as usize).unwrap().to_string();
+            // let data = slint::SharedString::from("Hello from Rust!");
+            // ui.set_send_data(data);
+            // if the text is "Connect", send a message to the serial thread to open the port
+            if ui.get_connect_button_text().to_string() == "Connect" {
+                tx_clone
+                    .send(CmdToSerial::Open(port_name, 115_200))
+                    .unwrap();
+                ui.set_connect_button_text(slint::SharedString::from("Disconnect"));
+            } else {
+                tx_clone.send(CmdToSerial::Close).unwrap();
+                ui.set_connect_button_text(slint::SharedString::from("Connect"));
+            }
+        }
+    });
+    ui.on_refresh_button_clicked({
+        let ui_handle = ui.as_weak();
+        move || {
+            let mut ports_name = vec![];
+            match available_ports() {
+                Ok(ports) => {
+                    for p in ports {
+                        ports_name.push(slint::SharedString::from(p.port_name));
+                    }
+                }
+                Err(e) => {
+                    println!("Error: {:?}", e);
+                }
+            }
+            let ui = ui_handle.unwrap();
+            let the_model = Rc::new(VecModel::from(ports_name));
+            let model_rc = ModelRc::new(the_model.clone());
+            ui.set_com_ports(model_rc);
+        }
+    });
+    ui.run()
+}

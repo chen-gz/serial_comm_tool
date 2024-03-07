@@ -7,6 +7,7 @@ component SideBarItem inherits Rectangle {
     in property <bool> selected;
     in property <bool> has-focus;
     in-out property <string> text <=> label.text;
+    
 
     callback clicked <=> touch.clicked;
 
