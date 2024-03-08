@@ -1,4 +1,4 @@
-import {VerticalBox, HorizontalBox, Button, TextEdit, StyleMetrics, ComboBox, CheckBox} from "std-widgets.slint";
+import {VerticalBox, HorizontalBox, Button, TextEdit, StyleMetrics, ComboBox, CheckBox, LineEdit} from "std-widgets.slint";
 import { SideBar } from "side_bar.slint";
 export component AppWindow inherits Window{
     width: 800px;
@@ -6,20 +6,24 @@ export component AppWindow inherits Window{
     // default-font-family: "Source Code Pro Mono";
     default-font-family: "JetBrains Mono NL Nerd Font";
     in-out property <string> send_data;
-    send_data: "Example Data long long long Example Data long long long Example Data long long long Example Data long long long Example Data long long long ";
+    // in-out property <string> send_data_show;
     in-out property <string> received_data;
     in-out property <int> received_data_length;
     in-out property <int> send_data_length;
+    in-out property <int> send_data_length_last;
     in-out property <[string]> com_ports;
     in-out property <int> com_ports_index;
     in-out property <string> connect_button_text;
     in-out property <bool> hex_selected;
+
     // default value for connect_button_text
     connect_button_text: "Connect";
+    hex_selected: false;
 
     callback connect_button_clicked(); 
     callback refresh_button_clicked();
     callback send_button_clicked();
+    callback hex_checkbox_toggled();
     // callback hex_checkbox_toggled();
 
     // callback for com port selection
@@ -124,11 +128,12 @@ export component AppWindow inherits Window{
             VerticalLayout {
                 // height: 100px;
                 HorizontalLayout {
-                    CheckBox {
+                    hex_checkbox := CheckBox {
                         text: "hex";
-                        checked: false;
+                        checked: root.hex_selected;
                         toggled => {
-                            root.hex_selected = false;
+                            root.hex_selected = !root.hex_selected;
+                            root.hex_checkbox_toggled();
                         }
                     }
                 }
@@ -181,16 +186,14 @@ export component AppWindow inherits Window{
                 text: "Send Data";
                 font-family: "JetBrains Mono NL Nerd Font";
             }
-            TextEdit {
-                text: "";
-                edited(s) => {
-                    root.send_data = s;
+            HorizontalLayout {
+                LineEdit {
+                    text <=> root.send_data;
                 }
-                
             }
             HorizontalLayout {
                 Text {
-                    text: "Send bytes: " + root.send_data_length;
+                    text: "Send last: " + root.send_data_length_last + " Bytes | Total Sent: "+ root.send_data_length + " Bytes";
                     // text: root.send_data_length;
                     font-family: "JetBrains Mono NL Nerd Font";
                 }
@@ -217,3 +220,30 @@ export component AppWindow inherits Window{
         }
     }
 }
+
+// import { LineEdit } from "std-widgets.slint";
+
+// // export component App inherits Window {
+// // export component AppWindow inherits Window{
+
+// export component AppWindow inherits Window{
+//     width: 800px;
+//     height: 600px;
+//     in-out property <string> data;
+//     in-out property <string> data1;
+//     callback edit();
+//     VerticalLayout {
+//         LineEdit {
+//             text: root.data;
+//             edited(s) => {
+//                 root.data = s;
+//                 debug(root.data);
+//                 edit();
+//             }
+//         }
+//         LineEdit {
+//             text: root.data1;   
+
+//         }
+//     }
+// }

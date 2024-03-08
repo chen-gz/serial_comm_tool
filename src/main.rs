@@ -1,6 +1,6 @@
 // #![windows_subsystem = "windows"]
 
-use slint::{Model, ModelRc, SharedString, VecModel, Weak};
+use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel, Weak};
 slint::include_modules!();
 use serialport::{available_ports, DataBits, FlowControl, Parity, SerialPort, StopBits};
 use std::{
@@ -170,6 +170,7 @@ fn setup_ui_update_thread(
                             ui.upgrade_in_event_loop(move |ui| {
                                 let sent_len = ui.get_send_data_length() as u32 + len;
                                 ui.set_send_data_length(sent_len as i32);
+                                ui.set_send_data_length_last(len as i32);
                             })
                             .unwrap();
                         }
@@ -253,6 +254,33 @@ fn setup_ui_event_listeners(ui: &AppWindow, tx_to_serial: Sender<CmdToSerial>) {
                     let data = data.as_bytes().to_vec();
                     let _ = tx_to_serial_copy.send(CmdToSerial::Send(data));
                 }
+            }
+        }
+    });
+    // ui.on_h
+    ui.on_hex_checkbox_toggled({
+        let ui_handle = ui.as_weak();
+        move || {
+            let ui = ui_handle.upgrade().unwrap();
+            let hex = ui.get_hex_selected();
+            if hex {
+                // convert the string to hex format
+                let data = ui.get_send_data();
+                let data = data.as_bytes();
+
+                let data = data
+                    .iter()
+                    .map(|&b| format!("{:02X}", b))
+                    .collect::<Vec<String>>()
+                    .join(" ");
+                ui.set_send_data(slint::SharedString::from(data));
+            } else {
+                let data = ui.get_send_data();
+                let data = data
+                    .split_whitespace()
+                    .map(|s| u8::from_str_radix(s, 16).unwrap_or(0) as u8 as char)
+                    .collect::<String>();
+                ui.set_send_data(slint::SharedString::from(data));
             }
         }
     });

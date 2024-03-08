@@ -1,0 +1,20 @@
+
+#![windows_subsystem = "windows"]
+slint::include_modules!();
+
+fn main() -> Result<(), slint::PlatformError> {
+    let ui = AppWindow::new()?;
+    ui.on_edit({
+        let ui_handle = ui.as_weak();
+        move || {
+            let ui = ui_handle.upgrade().unwrap();
+            let data = ui.get_data().to_string();
+            // add 's' to the end of the data
+            let data = format!("{}s", data);
+            ui.set_data(slint::SharedString::from(data.clone()));
+            ui.set_data1(slint::SharedString::from(data.clone()));
+        }
+    });
+
+    ui.run()
+}
