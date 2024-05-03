@@ -1,7 +1,7 @@
 import {VerticalBox, HorizontalBox, Button, TextEdit, StyleMetrics, ComboBox, CheckBox, LineEdit} from "std-widgets.slint";
 import { SideBar } from "side_bar.slint";
 export component AppWindow inherits Window{
-    width: 800px;
+    width: 1000px;
     height: 600px;
     // default-font-family: "Source Code Pro Mono";
     default-font-family: "JetBrains Mono NL Nerd Font";
@@ -49,13 +49,13 @@ export component AppWindow inherits Window{
                     ComboBox {
                         width: 100px;
                         // model: ["COM1", "COM2", "COM3", "COM4"];
-                        model: root.com_ports;
+                        model <=> root.com_ports;
                         // models: root.com_ports;
                         selected => {
                             root.com_port_selected();
                         }
                         // urrent-value: root.com_ports_value;
-                        current-index: root.com_ports_index;
+                        current-index <=> root.com_ports_index;
                         // if the model is empty, the combobox will be disabled
                         enabled: root.com_ports.length > 0;
                         

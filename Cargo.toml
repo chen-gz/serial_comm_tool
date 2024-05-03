@@ -1,17 +1,16 @@
 [package]
 name = "my-project"
 version = "0.1.0"
-authors = ["Mason <mason@ggeta.com>"]
+authors = ["chen <chen@ggeta.com>"]
 edition = "2021"
 build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-slint = {version = "1.4",  features = ["renderer-skia"]}
+slint = {version = "1.4" } #,  features = ["renderer-skia"]}
 # slint = {version = "1.4"}
 serialport = "4.3.0"
-skia-safe = "0.69.0"
 [build-dependencies]
 slint-build = "1.4"
 
