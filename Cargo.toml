@@ -1,5 +1,5 @@
 [package]
-name = "my-project"
+name = "eta_com_tool"
 version = "0.1.0"
 authors = ["chen <chen@ggeta.com>"]
 edition = "2021"
