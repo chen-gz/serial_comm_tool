@@ -149,7 +149,7 @@ fn setup_ui_update_thread(
                                 let recv_data = ui.get_received_data().to_string();
                                 let recv_data =
                                     format!("{}{}", recv_data, String::from_utf8_lossy(&data));
-                                // ui.set_received_data(slint::SharedString::from(recv_data));
+                                ui.set_received_data(slint::SharedString::from(recv_data));
                                 // update the received data length
                                 let recv_len =
                                     ui.get_received_data_length() as u32 + data.len() as u32;
@@ -222,6 +222,10 @@ fn setup_ui_event_listeners(ui: &AppWindow, tx_to_serial: Sender<CmdToSerial>) {
                             || p.port_name.starts_with("/dev/cu.Bluetooth")
                             || p.port_name.starts_with("/dev/tty.Bluetooth")
                         {
+                            continue;
+                        }
+                        // for linux ttyS* is not a valid port
+                        if p.port_name.starts_with("/dev/ttyS") {
                             continue;
                         }
                         ports_name.push(slint::SharedString::from(p.port_name));
